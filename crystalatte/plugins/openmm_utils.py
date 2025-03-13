@@ -33,6 +33,7 @@ AVOGADRO = 6.02214076e23
 EPSILON0 = 1e-6 * 8.8541878128e-12 / (E_CHARGE * E_CHARGE * AVOGADRO)
 ONE_4PI_EPS0 = 1 / (4 * M_PI * EPSILON0)
 
+
 def get_Dij(r_core, r_shell):
     """Calculate displacement between core and shell particles."""
     shell_mask = safe_norm(r_shell, 0.0, axis=-1) > 0.0
@@ -40,7 +41,8 @@ def get_Dij(r_core, r_shell):
     d = jnp.where(shell_mask[..., jnp.newaxis], d, 0.0)
     return d
 
-def get_Rij_Dij(simmd=None,qcel_mol=None,atom_types_map=None, **kwargs):
+
+def get_Rij_Dij(simmd=None, qcel_mol=None, atom_types_map=None, **kwargs):
     """Obtain Rij matrix (core-core displacements) and Dij (core-shell) displaments."""
 
     if simmd is not None:
@@ -79,30 +81,32 @@ def get_Rij_Dij(simmd=None,qcel_mol=None,atom_types_map=None, **kwargs):
         return Rij, Dij
     elif (simmd is None) and ((qcel_mol is not None) and (atom_types_map is not None)):
         nmols = len(qcel_mol.fragments)
-        m = [] 
+        m = []
         for i in range(nmols):
             mi = qcel_mol.get_fragment(i)
-            
+
             # atom_types_map ensure 1-to-1 mappings to SAPT "labels"
             atom_types = pd.read_csv(atom_types_map, names=["From", "To"])
-            target_types = [f"{s}{i}" for i,s in enumerate(mi.symbols)]
+            target_types = [f"{s}{i}" for i, s in enumerate(mi.symbols)]
 
             # NOTE: there should be a better way to determine qcel position units
-            geometry = np.array(mi.geometry)*qcel.constants.conversion_factor("bohr", "nanometer")
+            geometry = np.array(mi.geometry) * qcel.constants.conversion_factor(
+                "bohr", "nanometer"
+            )
             geometry_mapped = np.zeros_like(geometry)
-            #print(atom_types["From"].values)
-            #print(atom_types["To"].values)
+            # print(atom_types["From"].values)
+            # print(atom_types["To"].values)
             for idx, _type in enumerate(target_types):
-                #print(_type)
-                #print(atom_types[atom_types["To"] == _type].index)
+                # print(_type)
+                # print(atom_types[atom_types["To"] == _type].index)
                 idx_mapped = atom_types[atom_types["To"] == _type].index[0]
                 geometry_mapped[idx_mapped] = geometry[idx]
-            
+
             m.append(geometry_mapped)
-            #print(target_types)
-            #print(mi.geometry*qcel.constants.conversion_factor("bohr", "nanometer"))
-            #print(atom_types["From"].values)
-            #print(geometry_mapped)
+            # print(target_types)
+            # print(mi.geometry*qcel.constants.conversion_factor("bohr", "nanometer"))
+            # print(atom_types["From"].values)
+            # print(geometry_mapped)
         r_core = jnp.stack(m)
         if kwargs.get("pdb_template") is not None:
             pdb_template = kwargs.get("pdb_template")
@@ -117,6 +121,7 @@ def get_Rij_Dij(simmd=None,qcel_mol=None,atom_types_map=None, **kwargs):
         )
         Dij = get_Dij(r_core, r_shell)
         return Rij, Dij
+
 
 def r_core_to_pdb(r_core, pdb_template, pdb_file="tmp.pdb"):
     """Create updated PDB file with r_core from residue file as template."""
@@ -138,8 +143,9 @@ def r_core_to_pdb(r_core, pdb_template, pdb_file="tmp.pdb"):
     pdb.positions = new_positions
     with open(pdb_file, "w") as f:
         PDBFile.writeFile(pdb.topology, pdb.positions, f)
-    
-    print(f"Created {pdb_file}!") 
+
+    print(f"Created {pdb_file}!")
+
 
 def get_QiQj(simmd):
     """Obtain core and shell charges.
@@ -172,7 +178,7 @@ def get_QiQj(simmd):
         res_charge = []
         res_shell_charge = []
         for atom in res.atoms():
-            #print(atom.index, atom.name)
+            # print(atom.index, atom.name)
             # skip over drude particles
             if atom.index in drude_indices:
                 continue
@@ -331,7 +337,8 @@ def get_pol_params(simmd):
         )
     else:
         tholes = jnp.zeros((numResidues, numResidues, numAtoms))
-        u_scale = 0.0  # tholes * jnp.eye(Rij.shape[0])[:,:,jnp.newaxis,jnp.newaxis]
+        # tholes * jnp.eye(Rij.shape[0])[:,:,jnp.newaxis,jnp.newaxis]
+        u_scale = 0.0
 
     return k, u_scale
 

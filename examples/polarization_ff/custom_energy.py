@@ -1,31 +1,24 @@
 import crystalatte
 from crystalatte.plugins import force_fields
 import os
+# ZoomLineSearch fixed by newest version not on PyPi:
+# `pip install git+https://github.com/google/jaxopt`
+# import warnings
+#
+# warnings.filterwarnings('ignore', '.*jaxopt.ZoomLineSearch.*')
 
 
-file_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
+file_dir = os.path.dirname(os.path.realpath(__file__)) + "/" + "imidazole/"
 
 
 def main():
-    e = force_fields.openmm_inputs_polarization_energy(
-        pdb_file=f"{file_dir}imidazole.pdb",
-        xml_file=f"{file_dir}imidazole.xml",
-        residue_file=f"{file_dir}imidazole_residue.xml",
-    )
-    print(e)
+    # e = force_fields.openmm_inputs_polarization_energy(
+    #     pdb_file=f"{file_dir}imidazole.pdb",
+    #     xml_file=f"{file_dir}imidazole.xml",
+    #     residue_file=f"{file_dir}imidazole_residue.xml",
+    # )
+    # print(e)
     # return
-    # atom_types needs to be shape (N_atoms, N_molecules, 1)
-    monomer_atom_types_in_order_of_xyz = [
-        "N00",
-        "N0",
-        "H2",
-        "H21",
-        "H1",
-        "H0",
-        "C2",
-        "C21",
-        "C1",
-    ]
     _, _, output_data = crystalatte.main(
         cif_input=file_dir + "./imidazole.cif",
         cif_output=file_dir + "./imidazole.xyz",
@@ -51,7 +44,8 @@ def main():
         pdb_file=f"{file_dir}imidazole.pdb",
         xml_file=f"{file_dir}imidazole.xml",
         residue_file=f"{file_dir}imidazole_residue.xml",
-        atom_types=monomer_atom_types_in_order_of_xyz,
+        # atom_types=monomer_atom_types_in_order_of_xyz,
+        atom_types_map=f"{file_dir}imidazole_map.csv",
     )
     try:
         import pandas as pd

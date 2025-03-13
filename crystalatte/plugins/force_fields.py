@@ -210,16 +210,6 @@ def openmm_inputs_polarization_energy(
     return Uind_openmm
 
 
-def polarization_energy(R_core, Z_core, atom_types):
-    # TODO: assign atom_types here, form R=r_core (NxM_{molecule}x3), r_shell starts as all heavy
-    # atoms from R, NxM_{molecules}x3, positions zero for hydrogens
-    print('\npolarization energy:')
-    print(R_core.shape)
-    print(R_core)
-    print(Z_core)
-    print(atom_types)
-    return -0.0105
-
 def polarization_energy_sample(qcel_mol, **kwargs):
     """
     Sample version of 'polarization_energy()' function to be generalized 
@@ -292,61 +282,23 @@ def polarization_energy_function(
     kwargs passed to crystalatte.main() are passed to the energy function
     allowing the user to specify any additional arguments.
     """
-    pdb_file = kwargs.get("pdb_file", None)
-    xml_file = kwargs.get("xml_file", None)
-    atom_types = kwargs.get("atom_types", None)
-    residue_file = kwargs.get("residue_file", None)
-    print(f"qcel_mol = {qcel_mol}")
-    n_body_energy = -0.0105 
-    # update xyz coordinates with qcel_mol.geometry
-    atom_types_monomer = [[atom_types]]
-    atom_types_dimer = [[atom_types], [atom_types]]
-    atom_types_trimer = [[atom_types], [atom_types], [atom_types]]
-
-    atomic_numbers_monomer = [qcel_mol.get_fragment(0).atomic_numbers]
-    atomic_numbers_dimer = [atomic_numbers_monomer, atomic_numbers_monomer]
-    atomic_numbers_trimer = [atomic_numbers_monomer, atomic_numbers_monomer, atomic_numbers_monomer]
-
-
     if len(nmer["monomers"]) == 3:
         # Trimers: ΔE(3)ijk = Eijk − (ΔEij + ΔEik + ΔEjk) − (Ei + Ej + Ek)
-        m1, m2, m3 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1), qcel_mol.get_fragment(2)
-        v = np.reshape(m3.geometry, (-1, 1, 3))
-        r1 = np.reshape(m1.geometry, (-1, 1, 3))
-        r2 = np.reshape(m2.geometry, (-1, 1, 3))
-        r3 = np.reshape(m3.geometry, (-1, 1, 3))
-        Ei = polarization_energy(r1, atomic_numbers_monomer, atom_types_monomer)
-        Ej = polarization_energy(r1, atomic_numbers_monomer, atom_types_monomer)
-        Ek = polarization_energy(r1, atomic_numbers_monomer, atom_types_monomer)
-        Eij = polarization_energy(np.hstack((r1, r2)),  atomic_numbers_dimer, atom_types_dimer) - Ei - Ej
-        Eik = polarization_energy(np.hstack((r1, r3)),  atomic_numbers_dimer, atom_types_dimer) - Ei - Ek
-        Ejk = polarization_energy(np.hstack((r2, r3)),  atomic_numbers_dimer, atom_types_dimer) - Ej - Ek
-        Eijk = polarization_energy(np.hstack((r1, r2, r3)), atomic_numbers_trimer, atom_types_trimer) - (Eij + Eik + Ejk) - (Ei + Ej + Ek)
-        nmer['nambe'] = Eijk
+        # m1, m2, m3 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1), qcel_mol.get_fragment(2)
+        Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
+        Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
+        Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
+        Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) - Ei - Ek
+        Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) - Ej - Ek
+        # Eijk = polarization_energy_sample(qcel_mol, **kwargs) - Ej - Ek - (Eij + Eik + Ejk) - (Ei + Ej + Ek)
+        # nmer['nambe'] = Eijk
+        nmer['nambe'] = 0
     elif len(nmer["monomers"]) == 2:
-        m1, m2 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1)
-        r1 = np.reshape(m1.geometry, (-1, 1, 3))
-        r2 = np.reshape(m2.geometry, (-1, 1, 3))
-        Ei = polarization_energy(np.reshape(r1, (-1, 1, 3)), atomic_numbers_monomer, atom_types_monomer)
-        Ej = polarization_energy(np.reshape(r2, (-1, 1, 3)), atomic_numbers_monomer, atom_types_monomer)
-        Eij = polarization_energy(np.hstack((r1, r2)), atomic_numbers_dimer, atom_types_dimer) - Ei - Ej
+        Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
+        Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
         nmer['nambe'] = Eij
-        # Dimers: ΔE(2)ij = Eij − Ei − Ej
-        # m1, m2 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1)
-        # Ei = m1.nuclear_repulsion_energy()
-        # Ej = m2.nuclear_repulsion_energy()
-        # print(qcel_mol.get_fragment(0).atomic_numbers)
-        # print(qcel_mol.get_fragment([0, 1]).atomic_numbers)
-        # Eij = qcel_mol.get_fragment([0, 1]).nuclear_repulsion_energy()
-        # RA1, RA2 = m1.geometry, m2.geometry
-        # ZA1, ZA2 = m1.atomic_numbers, m2.atomic_numbers
-        # polarization_energy = openmm_inputs_polarization_energy(
-        #     pdb_file=pdb_file,
-        #     xml_file=xml_file,
-        #     residue_file=residue_file,
-        # )
-        # polarization_energy /= 2625.5 # convert from kJ/mol to Hartree
-        # nmer["nambe"] = polarization_energy
     else:
         raise ValueError("N-mer size not supported")
     return
