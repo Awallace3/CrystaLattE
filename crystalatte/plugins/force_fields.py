@@ -282,6 +282,7 @@ def polarization_energy_function(
     kwargs passed to crystalatte.main() are passed to the energy function
     allowing the user to specify any additional arguments.
     """
+    print(keynmer, qcel_mol)
     if len(nmer["monomers"]) == 3:
         # Trimers: ΔE(3)ijk = Eijk − (ΔEij + ΔEik + ΔEjk) − (Ei + Ej + Ek)
         # m1, m2, m3 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1), qcel_mol.get_fragment(2)
@@ -295,9 +296,14 @@ def polarization_energy_function(
         # nmer['nambe'] = Eijk
         nmer['nambe'] = 0
     elif len(nmer["monomers"]) == 2:
+        print(f"{qcel_mol.get_fragment(0) =}")
         Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
+        print(f"{Ei=}")
+        print(f"{qcel_mol.get_fragment(1) =}")
         Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
+        print(f"{Ej=}")
         Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
+        print(f"{Ei=}, {Ej=}, {Eij=}")
         nmer['nambe'] = Eij
     else:
         raise ValueError("N-mer size not supported")
