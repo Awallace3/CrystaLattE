@@ -42,6 +42,10 @@ def example_energy_function(
     print(keynmer, qcel_mol)
     print(qcel_mol.atomic_numbers)
     print(qcel_mol.geometry)
+    import numpy as np
+    geom = np.hstack([qcel_mol.atomic_numbers.reshape(-1, 1), qcel_mol.geometry])
+    print(geom)
+    print(qcel_mol.fragments)
     n_body_energy = -0.0105 
     if len(nmer["monomers"]) > 2:
         n_minus_1_body_energy = -0.0005
@@ -80,9 +84,8 @@ def main():
         bsse_type=None,
         job_memory=None,
         verbose=2,
-        # custom_function=force_fields.example_energy_function,
-        custom_function=force_fields.polarization_energy_function,
-        # custom_function=example_energy_function,
+        # custom_function=force_fields.polarization_energy_function,
+        custom_function=example_energy_function,
         pdb_file=f"{file_dir}imidazole.pdb",
         xml_file=f"{file_dir}imidazole.xml",
         residue_file=f"{file_dir}imidazole_residue.xml",
