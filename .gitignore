@@ -108,3 +108,6 @@ examples/ammonia_results.csv
 *.dat
 crystalatte/data/cif/Ammonia.xyz
 *.pkl
+examples/polarization_ff/ccsdt
+examples/polarization_ff/nelson_crystals
+

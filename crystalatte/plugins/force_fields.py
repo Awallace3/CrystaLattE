@@ -216,7 +216,6 @@ def polarization_energy_sample(qcel_mol, **kwargs):
     for polarization_energy_function(). Is currently functional for 
     only dimers, although generalization should be easy. 
     """
-    
     jax.config.update("jax_enable_x64", True)
     ### These lines should live in polarization_energy_function later on ### 
     pdb_file = kwargs.get("pdb_file", None)
@@ -282,29 +281,36 @@ def polarization_energy_function(
     kwargs passed to crystalatte.main() are passed to the energy function
     allowing the user to specify any additional arguments.
     """
-    print(keynmer, qcel_mol)
+    # print(keynmer, qcel_mol)
     if len(nmer["monomers"]) == 3:
         # Trimers: ΔE(3)ijk = Eijk − (ΔEij + ΔEik + ΔEjk) − (Ei + Ej + Ek)
         # m1, m2, m3 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1), qcel_mol.get_fragment(2)
-        Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
-        Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
-        Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
-        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
-        Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) - Ei - Ek
-        Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) - Ej - Ek
-        # Eijk = polarization_energy_sample(qcel_mol, **kwargs) - Ej - Ek - (Eij + Eik + Ejk) - (Ei + Ej + Ek)
+        # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
+        # Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
+        # Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
+        Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) # - Ei - Ek
+        Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) # - Ej - Ek
+        Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk) # - (Ei + Ej + Ek)
         # nmer['nambe'] = Eijk
-        nmer['nambe'] = 0
+        print(f"{Eijk = }")
+        if Eijk < -1e9:
+            nmer['nambe'] = 0.0
+        nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol
     elif len(nmer["monomers"]) == 2:
-        print(f"{qcel_mol.get_fragment(0) =}")
-        Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
-        print(f"{Ei=}")
-        print(f"{qcel_mol.get_fragment(1) =}")
-        Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
-        print(f"{Ej=}")
-        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
-        print(f"{Ei=}, {Ej=}, {Eij=}")
-        nmer['nambe'] = Eij
+        # print(f"{qcel_mol.get_fragment(0) =}")
+        # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
+        # print(f"{Ei=}")
+        # print(f"{qcel_mol.get_fragment(1) =}")
+        # Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
+        # print(f"{Ej=}")
+        # Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs)
+        if Eij < -1e9:
+            Eij = 0.0
+        # print(f"{Ei=}, {Ej=}, {Eij=}")
+        # print(f"{Eij=}")
+        nmer['nambe'] = Eij / qcel.constants.hartree2kJmol
     else:
         raise ValueError("N-mer size not supported")
     return
@@ -340,7 +346,7 @@ def example_energy_function(
     allowing the user to specify any additional arguments.
     """
     example_arg = kwargs.get("example_extra_arg", 0.0)
-    print(f"Example extra argument: {example_arg}")
+    # print(f"Example extra argument: {example_arg}")
     print(qcel_mol)
     n_body_energy = -0.0105 * np.random.rand()
     if len(nmer["monomers"]) > 2:
