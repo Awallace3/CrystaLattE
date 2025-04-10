@@ -452,14 +452,14 @@ def setup_openmm(
     nonbonded = [f for f in system.getForces() if isinstance(f, NonbondedForce)][0]
 
     # Add exceptions for ALL intramolecular pairs in a residue
-    for residue in modeller.getTopology().residues():
-        atom_indices = [atom.index for atom in residue.atoms()]
-        for i in range(len(atom_indices)):
-            for j in range(i + 1, len(atom_indices)):
-                i_global = atom_indices[i]
-                j_global = atom_indices[j]
-                # Force the Coulomb & LJ to zero for i-j
-                nonbonded.addException(i_global, j_global, 0.0, 1.0, 0.0, True)
+    # for residue in modeller.getTopology().residues():
+    #     atom_indices = [atom.index for atom in residue.atoms()]
+    #     for i in range(len(atom_indices)):
+    #         for j in range(i + 1, len(atom_indices)):
+    #             i_global = atom_indices[i]
+    #             j_global = atom_indices[j]
+    #             # Force the Coulomb & LJ to zero for i-j
+    #             nonbonded.addException(i_global, j_global, 0.0, 1.0, 0.0, True)
 
     platform = Platform.getPlatformByName(platform_name)
     simmd = Simulation(modeller.topology, system, integrator, platform)
@@ -468,7 +468,7 @@ def setup_openmm(
     return simmd
 
 
-def U_ind_omm(simmd):
+def U_FF(simmd):
     # total *static* energy (i.e., while Drudes have zero contribution)
     state = simmd.context.getState(
         getEnergy=True, getForces=True, getVelocities=True, getPositions=True
@@ -483,4 +483,12 @@ def U_ind_omm(simmd):
 
     # total Nonbonded + Drude (self) energy
     U_tot_omm = state.getPotentialEnergy()
+    return U_tot_omm, U_static_omm
+
+def U_ind_omm(simmd):
+    U_tot_omm, U_static_omm = U_FF(simmd)
     return (U_tot_omm - U_static_omm).value_in_unit(kilojoules_per_mole)
+
+def U_omm(simmd):
+    U_tot_omm, U_static_omm = U_FF(simmd)
+    return U_tot_omm.value_in_unit(kilojoules_per_mole)

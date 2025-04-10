@@ -182,12 +182,14 @@ def openmm_inputs_polarization_energy(
     pdb_file,
     xml_file,
     residue_file,
+    platform_name="CPU",
 ):
     jax.config.update("jax_enable_x64", True)
     simmd = openmm_utils.setup_openmm(
                 pdb_file=pdb_file,
                 ff_file=xml_file,
                 residue_file=residue_file,
+                platform_name=platform_name,
     )
     
     Uind_openmm = openmm_utils.U_ind_omm(simmd)
@@ -222,6 +224,9 @@ def polarization_energy_sample(qcel_mol, **kwargs):
     xml_file = kwargs.get("xml_file", None)
     atom_types_map = kwargs.get("atom_types_map", None)
     residue_file = kwargs.get("residue_file", None)
+    # polarization_energy_type can be "jax_ind", "openmm_ind", or "openmm_full";
+    polarization_energy_type = kwargs.get("polarization_energy_type", "jax_ind")
+    platform_name = kwargs.get("platform_name", "CPU")
     
     # update pdb_file with correct qcel_mol "topology" 
     pdb_file = openmm_utils._create_topology(qcel_mol, pdb_file, atom_types_map)
@@ -230,7 +235,14 @@ def polarization_energy_sample(qcel_mol, **kwargs):
                 pdb_file=pdb_file,
                 ff_file=xml_file,
                 residue_file=residue_file,
+                platform_name=platform_name,
     )
+    if polarization_energy_type == "openmm_ind":
+        Uind_openmm = openmm_utils.U_ind_omm(simmd)
+        return Uind_openmm
+    elif polarization_energy_type == "openmm_full":
+        U_full_openmm = openmm_utils.U_omm(simmd)
+        return U_full_openmm
     
     if kwargs.get("update_pdb") is not None and kwargs.get("update_pdb"):
         Rij, Dij = openmm_utils.get_Rij_Dij(qcel_mol=qcel_mol, atom_types_map=atom_types_map, pdb_template=pdb_file)
@@ -288,29 +300,31 @@ def polarization_energy_function(
     if len(nmer["monomers"]) == 3:
         # Trimers: ΔE(3)ijk = Eijk − (ΔEij + ΔEik + ΔEjk) − (Ei + Ej + Ek)
         # m1, m2, m3 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1), qcel_mol.get_fragment(2)
-        # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
-        # Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
-        # Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
-        # Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
-        # Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) # - Ei - Ek
-        # Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) # - Ej - Ek
-        # Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk) # - (Ei + Ej + Ek)
-        Eijk = polarization_energy_sample(qcel_mol, **kwargs)
+        Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
+        Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
+        Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
+        Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) - Ei - Ek
+        Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) - Ej - Ek
+        # For Openmm_full, this now works provided the right XML file. However,
+        # for induction only this is an ongoing issue.
+        Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk) - (Ei + Ej + Ek)
+        # Eijk = polarization_energy_sample(qcel_mol, **kwargs)
         # nmer['nambe'] = Eijk
-        print(f"{Eijk = }")
+        # print(f"{Eijk = }")
         # if Eijk < -1e9:
         #     Eijk = 0.0
         # nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol
-        nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol / 3
+        nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol 
     elif len(nmer["monomers"]) == 2:
         # print(f"{qcel_mol.get_fragment(0) =}")
-        # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
+        Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
         # print(f"{Ei=}")
         # print(f"{qcel_mol.get_fragment(1) =}")
-        # Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
+        Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
         # print(f"{Ej=}")
-        # Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
-        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs)
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
+        # Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs)
         # if Eij < -1e9:
         #     Eij = 0.0
         # print(f"{Ei=}, {Ej=}, {Eij=}")
