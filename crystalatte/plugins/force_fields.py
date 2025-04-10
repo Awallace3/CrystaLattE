@@ -296,10 +296,8 @@ def polarization_energy_function(
     kwargs passed to crystalatte.main() are passed to the energy function
     allowing the user to specify any additional arguments.
     """
-    # print(keynmer, qcel_mol)
     if len(nmer["monomers"]) == 3:
         # Trimers: ΔE(3)ijk = Eijk − (ΔEij + ΔEik + ΔEjk) − (Ei + Ej + Ek)
-        # m1, m2, m3 = qcel_mol.get_fragment(0), qcel_mol.get_fragment(1), qcel_mol.get_fragment(2)
         Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
         Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
         Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
@@ -310,25 +308,11 @@ def polarization_energy_function(
         # for induction only this is an ongoing issue.
         Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk) - (Ei + Ej + Ek)
         # Eijk = polarization_energy_sample(qcel_mol, **kwargs)
-        # nmer['nambe'] = Eijk
-        # print(f"{Eijk = }")
-        # if Eijk < -1e9:
-        #     Eijk = 0.0
-        # nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol
         nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol 
     elif len(nmer["monomers"]) == 2:
-        # print(f"{qcel_mol.get_fragment(0) =}")
         Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
-        # print(f"{Ei=}")
-        # print(f"{qcel_mol.get_fragment(1) =}")
         Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
-        # print(f"{Ej=}")
         Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) - Ei - Ej
-        # Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs)
-        # if Eij < -1e9:
-        #     Eij = 0.0
-        # print(f"{Ei=}, {Ej=}, {Eij=}")
-        # print(f"{Eij=}")
         nmer['nambe'] = Eij / qcel.constants.hartree2kJmol
     else:
         raise ValueError("N-mer size not supported")
