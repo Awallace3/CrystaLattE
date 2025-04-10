@@ -1,6 +1,6 @@
 import crystalatte
 
-# from crystalatte.plugins import force_fields
+from crystalatte.plugins import force_fields
 import os
 # ZoomLineSearch fixed by newest version not on PyPi:
 # `pip install git+https://github.com/google/jaxopt`
@@ -134,8 +134,8 @@ def main():
         bsse_type=None,
         job_memory=None,
         verbose=2,
-        # custom_function=force_fields.polarization_energy_function,
-        custom_function=example_energy_function,
+        custom_function=force_fields.polarization_energy_function,
+        # custom_function=example_energy_function,
         pdb_file=f"{file_dir}imidazole.pdb",
         xml_file=f"{file_dir}imidazole.xml",
         residue_file=f"{file_dir}imidazole_residue.xml",

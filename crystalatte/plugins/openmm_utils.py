@@ -3,8 +3,11 @@ import jax.numpy as jnp
 from optax import safe_norm
 import time
 import qcelemental as qcel
+from qcelemental import constants
 import numpy as np
 import pandas as pd
+from pathlib import Path
+from MDAnalysis import Universe 
 
 from openmm.vec3 import Vec3
 from openmm.app import (
@@ -32,6 +35,70 @@ E_CHARGE = 1.602176634e-19
 AVOGADRO = 6.02214076e23
 EPSILON0 = 1e-6 * 8.8541878128e-12 / (E_CHARGE * E_CHARGE * AVOGADRO)
 ONE_4PI_EPS0 = 1 / (4 * M_PI * EPSILON0)
+
+def _create_topology(qcel_mol, old_pdb_path, atom_types_map):
+    """Create new topology based on QCElemental "topology"."""
+    
+    import warnings
+    # suppress some MDAnalysis warnings about PDB files
+    warnings.filterwarnings('ignore')
+
+    resnames = set(Universe(old_pdb_path).atoms.resnames)
+    # NOTE: All resiudes MUST be the same in the provided PDB topology 
+    residue_name = resnames.pop() if len(resnames) == 1 else None
+    
+    old_pdb_path = Path(old_pdb_path)
+    tmp_pdb = old_pdb_path.with_name(old_pdb_path.stem + "_tmp" + old_pdb_path.suffix)
+    
+    _molecule_to_pdb_file(qcel_mol, tmp_pdb, residue_name, atom_types_map) 
+    _add_CONECT(tmp_pdb)
+
+    return str(tmp_pdb)
+
+def _molecule_to_pdb_file(molecule, filename: str, res_name: str, atom_types_map: str | None) -> None:
+    """Writes a QCElemental Molecule to a PDB file, handling multiple fragments and adding CONECT records if connectivity information is provided."""
+    coords = molecule.geometry * constants.bohr2angstroms
+    symbols = molecule.symbols
+    fragments = molecule.fragments
+
+    pdb_lines = []
+    atom_idx = 1
+
+    for res_seq, fragment in enumerate(fragments, start=1):
+        residue_name = res_name
+        chain_id = ' '
+        if atom_types_map:
+            type_map = pd.read_csv(atom_types_map, names=["From", "To"]).set_index("To")
+             
+        for i, atom in enumerate(fragment):
+            symbol = symbols[atom]
+            xyz = coords[atom]
+            atom_name = type_map.loc[f"{symbol.upper()}{i}", "From"]
+
+            pdb_lines.append(
+                f"ATOM  {atom_idx:5d} {atom_name:<4} {residue_name:<3} {chain_id}{res_seq:4d}    "
+                f"{xyz[0]:8.3f}{xyz[1]:8.3f}{xyz[2]:8.3f}"
+            )
+            atom_idx += 1
+
+    # pdb_lines.append("END")
+
+    if molecule.connectivity:
+        unique_bonds = set()
+        for bond in molecule.connectivity:
+            idx1, idx2 = sorted(bond[:2])  # QCElemental indices start from 0
+            unique_bonds.add((idx1 + 1, idx2 + 1))
+
+        for idx1, idx2 in unique_bonds:
+            pdb_lines.append(f"CONECT{idx1:5d}{idx2:5d}")
+
+    with open(filename, "w") as pdb:
+        pdb.write('\n'.join(pdb_lines))
+
+def _add_CONECT(pdb_filename: str) -> None:
+    """Adds CONECT records to an existing PDB file using MDAnalysis's default bond guesser."""
+    from MDAnalysis import Universe
+    Universe(pdb_filename, format='PDB', guess_bonds=True).atoms.write(pdb_filename)
 
 
 def get_Dij(r_core, r_shell):
@@ -90,9 +157,7 @@ def get_Rij_Dij(simmd=None, qcel_mol=None, atom_types_map=None, **kwargs):
             target_types = [f"{s}{i}" for i, s in enumerate(mi.symbols)]
 
             # NOTE: there should be a better way to determine qcel position units
-            geometry = np.array(mi.geometry) * qcel.constants.conversion_factor(
-                "bohr", "nanometer"
-            )
+            geometry = np.array(mi.geometry)*constants.conversion_factor("bohr", "nanometer")
             geometry_mapped = np.zeros_like(geometry)
             # print(atom_types["From"].values)
             # print(atom_types["To"].values)
@@ -103,10 +168,10 @@ def get_Rij_Dij(simmd=None, qcel_mol=None, atom_types_map=None, **kwargs):
                 geometry_mapped[idx_mapped] = geometry[idx]
 
             m.append(geometry_mapped)
-            # print(target_types)
-            # print(mi.geometry*qcel.constants.conversion_factor("bohr", "nanometer"))
-            # print(atom_types["From"].values)
-            # print(geometry_mapped)
+            #print(target_types)
+            #print(mi.geometry*constants.conversion_factor("bohr", "nanometer"))
+            #print(atom_types["From"].values)
+            #print(geometry_mapped)
         r_core = jnp.stack(m)
         if kwargs.get("pdb_template") is not None:
             pdb_template = kwargs.get("pdb_template")
@@ -370,7 +435,6 @@ def setup_openmm(
     integrator.setMinimizationErrorTolerance(error_tol)
     if integrator_seed is not None:
         integrator.setRandomNumberSeed(integrator_seed)
-
     pdb = PDBFile(pdb_file)
     modeller = Modeller(pdb.topology, pdb.positions)
     forcefield = ForceField(ff_file)

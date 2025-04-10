@@ -166,7 +166,7 @@ def drudeOpt(
     )
 
     start = time.time()
-    solver = BFGS(fun=Uind_min, tol=0.0001)
+    solver = BFGS(fun=Uind_min, tol=1e-16)
     res = solver.run(init_params=Dij0)
     end = time.time()
     d_opt = res.params 
@@ -222,7 +222,10 @@ def polarization_energy_sample(qcel_mol, **kwargs):
     xml_file = kwargs.get("xml_file", None)
     atom_types_map = kwargs.get("atom_types_map", None)
     residue_file = kwargs.get("residue_file", None)
-   
+    
+    # update pdb_file with correct qcel_mol "topology" 
+    pdb_file = openmm_utils._create_topology(qcel_mol, pdb_file, atom_types_map)
+
     simmd = openmm_utils.setup_openmm(
                 pdb_file=pdb_file,
                 ff_file=xml_file,
@@ -288,15 +291,17 @@ def polarization_energy_function(
         # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
         # Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
         # Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
-        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
-        Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) # - Ei - Ek
-        Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) # - Ej - Ek
-        Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk) # - (Ei + Ej + Ek)
+        # Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
+        # Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) # - Ei - Ek
+        # Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) # - Ej - Ek
+        # Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk) # - (Ei + Ej + Ek)
+        Eijk = polarization_energy_sample(qcel_mol, **kwargs)
         # nmer['nambe'] = Eijk
         print(f"{Eijk = }")
-        if Eijk < -1e9:
-            nmer['nambe'] = 0.0
-        nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol
+        # if Eijk < -1e9:
+        #     Eijk = 0.0
+        # nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol
+        nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol / 3
     elif len(nmer["monomers"]) == 2:
         # print(f"{qcel_mol.get_fragment(0) =}")
         # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
@@ -306,8 +311,8 @@ def polarization_energy_function(
         # print(f"{Ej=}")
         # Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
         Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs)
-        if Eij < -1e9:
-            Eij = 0.0
+        # if Eij < -1e9:
+        #     Eij = 0.0
         # print(f"{Ei=}, {Ej=}, {Eij=}")
         # print(f"{Eij=}")
         nmer['nambe'] = Eij / qcel.constants.hartree2kJmol
