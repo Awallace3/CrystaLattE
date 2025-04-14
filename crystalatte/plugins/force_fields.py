@@ -38,6 +38,7 @@ def safe_sum(X):
 def Uself(Dij, k):
     """Calculates self energy, 1/2 Σ k_i * ||d_mag_i||^2."""
     d_mag = safe_norm(Dij, 0.0, axis=2)
+    jax.debug.print("d_mag: {}", d_mag)
     return 0.5 * jnp.sum(k * d_mag**2)
 
 @jit
@@ -96,9 +97,9 @@ def Ucoul(Rij, Dij, Qi_shell, Qj_shell, Qi_core, Qj_core, u_scale):
     U_coul_intra = (U_coul_intra * I_intra[:, :, jnp.newaxis, jnp.newaxis]) * (
         1 - I_self[jnp.newaxis, jnp.newaxis, :, :]
     )
-
+    jax.debug.print("U_coul_intr: {}", U_coul_intra)
     U_coul_total = 0.5 * safe_sum(U_coul_inter + U_coul_intra)
-
+    
     return ONE_4PI_EPS0 * U_coul_total
 
 @jit
@@ -138,7 +139,9 @@ def Uind(Rij, Dij, Qi_shell, Qj_shell, Qi_core, Qj_core, u_scale, k):
     U_coul = Ucoul(Rij, Dij, Qi_shell, Qj_shell, Qi_core, Qj_core, u_scale)
     U_coul_static = Ucoul_static(Rij, Qi_shell, Qj_shell, Qi_core, Qj_core)
     U_self = Uself(Dij, k)
-    
+    jax.debug.print("U_coul: {}", U_coul) 
+    jax.debug.print("U_coul_static: {}", U_coul_static) 
+    jax.debug.print("U_self: {}", U_self) 
     U_ind = (U_coul - U_coul_static) + U_self
     
     return U_ind
@@ -161,6 +164,17 @@ def drudeOpt(
     Uind w.r.t d.
 
     """
+    print(" %%%%% STARTING SCF %%%%%\n")
+    print(Rij)
+    jax.debug.print("Rij: {}", Rij)
+    jax.debug.print("Dij: {}", Dij0)
+    jax.debug.print("Qi_core: {}", Qi_core)
+    jax.debug.print("Qi_shell: {}", Qi_shell)
+    jax.debug.print("Qj_core: {}", Qj_core)
+    jax.debug.print("Qj_shell: {}", Qj_shell)
+    jax.debug.print("k: {}", k)
+    jax.debug.print("u_scale: {}", u_scale)
+    
     Uind_min = lambda Dij: Uind(
         Rij, Dij, Qi_shell, Qj_shell, Qi_core, Qj_core, u_scale, k
     )
@@ -249,10 +263,19 @@ def polarization_energy_sample(qcel_mol, **kwargs):
     else:
         Rij, Dij = openmm_utils.get_Rij_Dij(qcel_mol=qcel_mol, atom_types_map=atom_types_map)
 
+    jax.debug.print("Rij: {}", Rij)
+    jax.debug.print("Dij: {}", Dij)
             
     # get_QiQj() and get_pol_params() can, in principle, depend solely on the xml_file 
     Qi_core, Qi_shell, Qj_core, Qj_shell = openmm_utils.get_QiQj(simmd) 
+    jax.debug.print("Qi_core: {}", Qi_core)
+    jax.debug.print("Qi_shell: {}", Qi_shell)
+    jax.debug.print("Qj_core: {}", Qj_core)
+    jax.debug.print("Qj_shell: {}", Qj_shell)
     k, u_scale = openmm_utils.get_pol_params(simmd)
+    jax.debug.print("k: {}", k)
+    jax.debug.print("u_scale: {}", u_scale)
+
     ### These lines should live in polarization_energy_function later on ### 
     
     Dij = drudeOpt(
@@ -265,6 +288,8 @@ def polarization_energy_sample(qcel_mol, **kwargs):
         u_scale,
         k,
     )
+    print("finished SCF for Dij")
+    jax.debug.print("Dij: {}", Dij)
     U_ind = Uind(Rij, Dij, Qi_shell, Qj_shell, Qi_core, Qj_core, u_scale, k)
     
     return U_ind
