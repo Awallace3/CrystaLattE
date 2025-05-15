@@ -403,21 +403,14 @@ def polarization_energy_function(
     """
     if len(nmer["monomers"]) == 3:
         # Trimers: ΔE(3)ijk = Eijk − (ΔEij + ΔEik + ΔEjk) − (Ei + Ej + Ek)
-        # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
-        # Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
-        # Ek = polarization_energy_sample(qcel_mol.get_fragment(2), **kwargs)
-        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
-        Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs) # - Ei - Ek
-        Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs) # - Ej - Ek
-        # For Openmm_full, this now works provided the right XML file. However,
-        # for induction only this is an ongoing issue.
-        Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk) # - (Ei + Ej + Ek)
-        # Eijk = polarization_energy_sample(qcel_mol, **kwargs)
-        nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol 
+        # Ei = Ej = Ek = 0
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs)
+        Eik = polarization_energy_sample(qcel_mol.get_fragment([0, 2]), **kwargs)
+        Ejk = polarization_energy_sample(qcel_mol.get_fragment([1, 2]), **kwargs)
+        Eijk = polarization_energy_sample(qcel_mol, **kwargs) - (Eij + Eik + Ejk)
+        nmer['nambe'] = Eijk / qcel.constants.hartree2kJmol
     elif len(nmer["monomers"]) == 2:
-        # Ei = polarization_energy_sample(qcel_mol.get_fragment(0), **kwargs)
-        # Ej = polarization_energy_sample(qcel_mol.get_fragment(1), **kwargs)
-        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs) # - Ei - Ej
+        Eij = polarization_energy_sample(qcel_mol.get_fragment([0, 1]), **kwargs)
         nmer['nambe'] = Eij / qcel.constants.hartree2kJmol
     else:
         raise ValueError("N-mer size not supported")
