@@ -405,7 +405,7 @@ class XmlMD:
                 q     = float(atom_el.get('charge'))
                 sig   = float(atom_el.get('sigma'))
                 eps   = float(atom_el.get('epsilon'))
-                self.nonbonded_params[tname] = (q, sig, eps)
+                self.nonbonded_params[tname] = [q, sig, eps]
 
         # Parse <DrudeForce>
         # <Particle type1="IM-DC21" type2="IM-C21" charge="-1.1478" polarizability="0.00195233" thole="1"/>

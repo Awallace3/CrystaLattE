@@ -16,6 +16,7 @@ sys.path.append(".")
 
 
 ONE_4PI_EPS0 = utils.ONE_4PI_EPS0
+jax.config.update("jax_enable_x64", True)
 
 
 @jit
@@ -333,7 +334,6 @@ def polarization_energy_sample(qcel_mol, **kwargs):
     for polarization_energy_function(). Is currently functional for 
     only dimers, although generalization should be easy. 
     """
-    jax.config.update("jax_enable_x64", True)
     ### These lines should live in polarization_energy_function later on ### 
     pdb_file = kwargs.get("pdb_file", None)
     xml_file = kwargs.get("xml_file", None)
@@ -345,11 +345,15 @@ def polarization_energy_sample(qcel_mol, **kwargs):
     # update pdb_file with correct qcel_mol "topology" 
     pdb_file = utils._create_topology(qcel_mol, pdb_file, atom_types_map)
     
+    xmlmd_params = kwargs.get("xmlmd", None)
     xmlmd = utils.XmlMD(qcel_mol=qcel_mol, atom_types_map=atom_types_map)
     xmlmd.parse_xml(xml_file)
+    if xmlmd_params is not None:
+        xmlmd.drude_params = xmlmd_params.drude_params
+        xmlmd.nonbonded_params = xmlmd_params.nonbonded_params
 
     Rij, Dij = utils.get_Rij_Dij(qcel_mol=qcel_mol, atom_types_map=atom_types_map)
-    Qi_core, Qi_shell, Qj_core, Qj_shell = utils.get_QiQj(xmlmd) 
+    Qi_core, Qi_shell, Qj_core, Qj_shell = utils.get_QiQj(xmlmd)
     k, u_scale = utils.get_pol_params(xmlmd)
 
     ### These lines should live in polarization_energy_function later on ### 
