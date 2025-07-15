@@ -28,13 +28,8 @@ def main():
         job_memory=None,
         verbose=2,
         custom_function=force_fields.polarization_energy_function,
-        # polarization_energy_type="openmm_full",
-        # polarization_energy_type="openmm_ind",
-        polarization_energy_type="jax_ind",
-        platform_name="CPU",
         pdb_file=f"{file_dir}imidazole.pdb",
         xml_file=f"{file_dir}imidazole.xml",
-        residue_file=f"{file_dir}imidazole_residue.xml",
         atom_types_map=f"{file_dir}imidazole_map.csv",
     )
     try:

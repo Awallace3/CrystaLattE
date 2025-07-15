@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - matplotlib-base
+  - mdanalysis
   - numpy=1
   - pandas
   - pytest
@@ -16,5 +17,4 @@ dependencies:
   - jaxlib=0.5.0
   - optax
   - jaxopt
-  - openmm
-  - mdanalysis
+  - networkx
