@@ -3,6 +3,7 @@ from crystalatte.plugins import force_fields
 import os
 import pandas as pd
 import time 
+from openff.toolkit.topology import Molecule
 
 file_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
 
@@ -31,7 +32,7 @@ def main():
             qcel_mol = row["mol"]
             distance = row["Minimum Monomer Separations (A)"] 
             Uind_sapt = row["SAPT0 Induction (kJ/mol)"]
-            Ues_sapt = row["SAPT0 Electrostatics (kJ/mol)"]
+            # Ues_sapt = row["SAPT0 Electrostatics (kJ/mol)"]
             Nmer_name = row["N-mer Name"]
             
             Uind_md, Udf, Unb, Ues = force_fields.polarization_energy_sample(
@@ -50,9 +51,10 @@ def main():
                 "Unb": Unb,
                 "Ues": Unb,
                 "Uind_sapt": Uind_sapt,
-                "Ues_sapt": Ues_sapt,
+                # "Ues_sapt": Ues_sapt,
             })
-            print(f"(Ues_sapt, Ues, Uind_sapt, Uind, distance) = ({Ues_sapt}, {Ues}, {Uind_sapt}, {Uind_md}, {distance})")
+            #print(f"(Ues_sapt, Ues, Uind_sapt, Uind, distance) = ({Ues_sapt}, {Ues}, {Uind_sapt}, {Uind_md}, {distance})")
+            print(f"(Ues, Uind_sapt, Uind, distance) = ({Ues}, {Uind_sapt}, {Uind_md}, {distance})")
         end_time = time.time()
         results_df = pd.DataFrame(results)
         results_df['time_per_system'] = (end_time - start_time) / len(results)
