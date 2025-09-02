@@ -112,3 +112,6 @@ examples/polarization_ff/ccsdt
 examples/polarization_ff/nelson_crystals
 
 examples/polarization_ff/imidazole/imidazole_tmp.pdb
+2mer-*.in
+2mer-*.out
+.DS_Store
