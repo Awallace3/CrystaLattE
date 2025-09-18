@@ -12,7 +12,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
-import os 
+import os
+
 
 def inset_image(ax, insetPath):
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes

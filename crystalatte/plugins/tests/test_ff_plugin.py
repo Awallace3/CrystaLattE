@@ -4,13 +4,13 @@ import os
 # ZoomLineSearch fixed by newest version not on PyPi:
 # `pip install git+https://github.com/google/jaxopt`
 
-file_dir = os.path.dirname(os.path.realpath(__file__)) + "/" + "imidazole/"
+file_dir = os.path.dirname(os.path.realpath(__file__))
 
 
-def main():
+def test_drude_energy():
     _, _, output_data = crystalatte.main(
-        cif_input=file_dir + "./imidazole.cif",
-        cif_output=file_dir + "./imidazole.xyz",
+        cif_input=file_dir + "/imidazole.cif",
+        cif_output=file_dir + "/imidazole.xyz",
         bfs_thresh=1.2,
         cif_a=0,
         cif_b=0,
@@ -31,22 +31,14 @@ def main():
         custom_function=force_fields.polarization_energy_function,
         polarization_energy_type="jax_ind",
         platform_name="CPU",
-        pdb_file=f"{file_dir}imidazole.pdb",
-        xml_file=f"{file_dir}imidazole.xml",
-        residue_file=f"{file_dir}imidazole_residue.xml",
-        atom_types_map=f"{file_dir}imidazole_map.csv",
+        pdb_file=f"{file_dir}/imidazole.pdb",
+        xml_file=f"{file_dir}/imidazole.xml",
+        residue_file=f"{file_dir}/imidazole_residue.xml",
+        atom_types_map=f"{file_dir}/imidazole_map.csv",
     )
-    try:
-        import pandas as pd
-
-        df = pd.DataFrame(output_data)
-        print(df)
-        df.to_csv("./imidazole.csv", index=False)
-    except ImportError:
-        print("Pandas not installed, printing dictionary")
-        print(output_data)
+    print(output_data)
     return
 
 
 if __name__ == "__main__":
-    main()
+    test_drude_energy()
